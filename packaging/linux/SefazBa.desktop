@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=SefazBa
+Comment=Extração de NF-e e vinculação de MDF-e no portal da SEFAZ-BA
+Exec=/opt/sefazba/bin/SefazBa
+Icon=/opt/sefazba/lib/SefazBa.png
+Terminal=true
+Type=Application
+Categories=Office

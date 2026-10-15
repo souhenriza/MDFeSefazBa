@@ -1,0 +1,21 @@
+#!/bin/sh
+# prerm script for sefazba (customized from jpackage's template: removes the sefazba terminal command)
+
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        xdg-desktop-menu uninstall /opt/sefazba/lib/sefazba-SefazBa.desktop
+        rm -f /usr/bin/sefazba
+    ;;
+
+    failed-upgrade)
+    ;;
+
+    *)
+        echo "prerm called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+exit 0
