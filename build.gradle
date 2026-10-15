@@ -1,0 +1,191 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.souhenriza'
+// The release workflow passes -PappVersion=<tag without the v>
+version=1.0
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+    // lept4j 1.23.0-nomultiborder is a patched build (without the multi-border function the system Leptonica on
+    // Linux lacks); it is not published anywhere, so it is vendored here
+    maven {
+        url = file('libs/maven')
+        content { includeGroup 'net.sourceforge.lept4j' }
+    }
+}
+
+dependencies {
+    implementation 'com.microsoft.playwright:playwright:1.63.0'
+    implementation 'org.yaml:snakeyaml:2.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.5'
+
+    // Interactive menu (arrow-key prompts); terminal-jni gives a native console on Windows
+    implementation 'org.jline:jline-prompt:4.4.6'
+    implementation 'org.jline:jline-terminal-jni:4.4.6'
+
+    implementation 'org.xerial:sqlite-jdbc:3.53.4.0'
+    implementation 'org.flywaydb:flyway-core:11.14.1'
+    implementation 'org.hibernate.orm:hibernate-core:7.2.24.Final'
+    implementation 'org.hibernate.orm:hibernate-community-dialects:7.2.24.Final'
+
+    implementation 'com.google.crypto.tink:tink:1.11.0'
+    implementation 'org.openpnp:opencv:4.9.0-0'
+    implementation('net.sourceforge.tess4j:tess4j:5.18.0') {
+        exclude group: 'net.sourceforge.lept4j', module: 'lept4j'
+    }
+    implementation 'net.sourceforge.lept4j:lept4j:1.23.0-nomultiborder'
+
+    implementation 'org.apache.pdfbox:pdfbox:3.0.8'
+    implementation 'org.apache.poi:poi-ooxml:5.4.0'
+
+    implementation 'org.slf4j:slf4j-api:2.0.18'
+    implementation 'ch.qos.logback:logback-classic:1.5.38'
+    // POI logs through Log4j API; route it to SLF4J/Logback as Spring Boot did
+    runtimeOnly 'org.apache.logging.log4j:log4j-to-slf4j:2.25.5'
+
+    compileOnly 'org.projectlombok:lombok:1.18.46'
+    annotationProcessor 'org.projectlombok:lombok:1.18.46'
+
+    testImplementation platform('org.junit:junit-bom:6.0.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+application {
+    mainClass = 'com.souhenriza.sefazba.SefazBaApplication'
+    // Name of the launcher scripts: build/install/sefazba/bin/sefazba(.bat)
+    applicationName = 'sefazba'
+}
+
+jar {
+    // Read back by `sefazba --version`
+    manifest {
+        attributes 'Implementation-Title': 'sefazba', 'Implementation-Version': project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('run') {
+    // Relative paths in configs.yaml (datas/, keys/, Tesseract-OCR/) resolve against the project directory
+    workingDir = projectDir
+    environment 'SEFAZBA_HOME', projectDir.absolutePath
+    standardInput = System.in
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// ==================== Installers (jpackage) ====================
+// `./gradlew jpackage` builds the installer for the OS it runs on: .exe on Windows, .deb on Linux.
+// jpackage cannot cross-build, so the release workflow runs it once per OS.
+
+def isWindows = System.getProperty('os.name').toLowerCase().startsWith('windows')
+def packagingDir = layout.projectDirectory.dir('packaging')
+def jpackageDir = layout.buildDirectory.dir('jpackage')
+
+// Playwright's driver and OpenCV ship natives for every OS (~300 MB); each installer keeps only its own
+def playwrightPlatform = isWindows ? 'win32_x64' : 'linux'
+def opencvPlatform = isWindows ? 'windows/x86_64' : 'linux/x86_64'
+
+def slimJar = { String taskName, String jarPrefix, Closure keep ->
+    tasks.register(taskName, Jar) {
+        def source = configurations.runtimeClasspath.filter { it.name.startsWith(jarPrefix) }
+        archiveFileName = providers.provider { source.singleFile.name }
+        destinationDirectory = jpackageDir.map { it.dir('slim') }
+        from({ zipTree(source.singleFile) }) {
+            exclude 'META-INF/MANIFEST.MF'
+            eachFile { if (!keep(it.path)) it.exclude() }
+        }
+        includeEmptyDirs = false
+    }
+}
+slimJar('slimPlaywrightDriver', 'driver-bundle-') { String path ->
+    !path.startsWith('driver/') || path == 'driver/' || path.startsWith("driver/${playwrightPlatform}/")
+}
+slimJar('slimOpencv', 'opencv-') { String path ->
+    !path.startsWith('nu/pattern/opencv/') || path.startsWith("nu/pattern/opencv/${opencvPlatform}/")
+}
+
+tasks.register('jpackageInput', Sync) {
+    dependsOn 'installDist', 'slimPlaywrightDriver', 'slimOpencv'
+    into jpackageDir.map { it.dir('input') }
+    from(layout.buildDirectory.dir('install/sefazba/lib')) {
+        exclude 'driver-bundle-*.jar', 'opencv-*.jar'
+    }
+    from(jpackageDir.map { it.dir('slim') })
+    from(packagingDir.dir('tessdata')) { into 'tessdata' }
+}
+
+tasks.register('jpackage', Exec) {
+    group = 'distribution'
+    description = 'Builds the installer for the current OS (.exe on Windows, .deb on Linux).'
+    dependsOn 'jpackageInput'
+
+    def output = jpackageDir.map { it.dir('installer') }
+    def mainJar = tasks.named('jar').flatMap { it.archiveFileName }
+    // jpackage only accepts numeric versions
+    def numericVersion = project.version.toString().replaceAll(/[^0-9.].*$/, '')
+
+    doFirst {
+        delete output
+        def jpackageExe = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+                .get().metadata.installationPath.file(isWindows ? 'bin/jpackage.exe' : 'bin/jpackage').asFile
+        def args = [
+                jpackageExe.absolutePath,
+                '--name', 'SefazBa',
+                '--app-version', numericVersion,
+                '--vendor', 'souhenriza',
+                '--description', 'Extração de NF-e e vinculação de MDF-e no portal da SEFAZ-BA',
+                '--input', jpackageDir.get().dir('input').asFile.absolutePath,
+                '--main-jar', mainJar.get(),
+                '--main-class', application.mainClass.get(),
+                '--java-options', '-Dsefazba.tessdata=$APPDIR/tessdata',
+                '--dest', output.get().asFile.absolutePath,
+        ]
+        if (isWindows) {
+            args += [
+                    '--type', 'exe',
+                    '--icon', packagingDir.file('windows/SefazBa.ico').asFile.absolutePath,
+                    // Opens a terminal window, which the menu needs
+                    '--win-console',
+                    '--win-shortcut', '--win-menu', '--win-menu-group', 'SefazBa',
+                    // No admin rights needed; installs under %LOCALAPPDATA%
+                    '--win-per-user-install',
+                    // Fixed so a newer installer replaces the installed version
+                    '--win-upgrade-uuid', '3643c87b-c4fd-4ec5-86fd-ffdbf395178e',
+            ]
+        } else {
+            args += [
+                    '--type', 'deb',
+                    '--icon', packagingDir.file('linux/SefazBa.png').asFile.absolutePath,
+                    '--linux-package-name', 'sefazba',
+                    '--linux-shortcut', '--linux-menu-group', 'Office',
+                    '--linux-app-category', 'utils',
+                    // CaptchaDestinatarioSolver loads the system libtesseract through JNA
+                    '--linux-package-deps', 'tesseract-ocr',
+                    // Custom .desktop (Terminal=true) and postinst (/usr/bin/sefazba symlink)
+                    '--resource-dir', packagingDir.dir('linux').asFile.absolutePath,
+            ]
+        }
+        // -PjpackageVerbose keeps jpackage's work files to inspect the generated .desktop/postinst
+        if (project.hasProperty('jpackageVerbose')) {
+            args += ['--verbose', '--temp', jpackageDir.get().dir('temp').asFile.absolutePath]
+            delete jpackageDir.get().dir('temp')
+        }
+        commandLine args
+    }
+}
+

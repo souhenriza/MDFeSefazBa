@@ -1,0 +1,25 @@
+# Configurações padrão. Na primeira execução este arquivo é copiado para a pasta de dados ($SEFAZBA_HOME,
+# ou %APPDATA%\SefazBa no Windows e ~/.local/share/sefazba no Linux); edite a cópia de lá.
+# Caminhos relativos são resolvidos a partir da pasta de dados.
+application:
+  home: .
+  key-path: keys/
+  database:
+    url: jdbc:sqlite:datas/mdfe.db
+  browser:
+    headless: true
+  tesseract:
+    datapath: Tesseract-OCR/tessdata
+  reports:
+    fallback-dir: reports
+  sefaz:
+    links:
+      root-site: https://nfe.sefaz.ba.gov.br/servicos/NFENC/SSL/ASLibrary/Login?ReturnUrl=%2fservicos%2fnfenc%2fModulos%2fAutenticado%2fRestrito%2fNFENC_consulta_destinatario.aspx
+      access-key-site: https://nfe.sefaz.ba.gov.br/servicos/nfenc/Modulos/Geral/NFENC_consulta_chave_acesso.aspx
+      destinatario-site: https://nfe.sefaz.ba.gov.br/servicos/nfenc/Modulos/Autenticado/Restrito/NFENC_consulta_destinatario.aspx
+
+personalization:
+  account-desk:
+    reports:
+      name:
+      slogan:

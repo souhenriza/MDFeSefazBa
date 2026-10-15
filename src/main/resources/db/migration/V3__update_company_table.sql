@@ -1,0 +1,1 @@
+ALTER TABLE company ADD COLUMN commercial_intention BOOLEAN NOT NULL DEFAULT 0;
