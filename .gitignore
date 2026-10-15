@@ -41,17 +41,19 @@ bin/
 
 ### Mac OS ###
 .DS_Store
-datas/
-keys/
-logs/
-png/
-reports/
+# Anchored to the project root: an unanchored "reports/" also matched src/.../infrastructure/reports/
+/datas/
+/keys/
+/logs/
+/png/
+/reports/
 *.db
 secret-key.json
 /configs.yaml
 .idea/**
 .idea/*.xml
 .idea/gradle.xml
+
 
 
 /src/main/resources/configs.yaml
