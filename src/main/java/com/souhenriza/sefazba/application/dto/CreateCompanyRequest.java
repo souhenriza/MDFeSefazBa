@@ -1,5 +1,9 @@
 package com.souhenriza.sefazba.application.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+// Older company JSON files still carry the removed responsibleUserId
+@JsonIgnoreProperties({"responsibleUserId"})
 public record CreateCompanyRequest(
         String legalName,
         String tradeName,
@@ -7,7 +11,6 @@ public record CreateCompanyRequest(
         int dominioSistemasId,
         String sefazLogin,
         String sefazPassword,
-        Long responsibleUserId,
         boolean commercialIntention,
         String preferOutputPath
 ) {}

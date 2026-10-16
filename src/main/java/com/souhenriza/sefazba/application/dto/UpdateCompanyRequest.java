@@ -7,6 +7,5 @@ public record UpdateCompanyRequest(
         Integer dominioSistemasId,
         String sefazLogin,
         String sefazPassword,
-        Long responsibleUserId,
         Boolean commercialIntention
 ) {}

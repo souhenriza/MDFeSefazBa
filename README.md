@@ -54,7 +54,6 @@ que lê o captcha da consulta.
        "dominioSistemasId": 10,
        "sefazLogin": "login",
        "sefazPassword": "senha",
-       "responsibleUserId": 1,
        "commercialIntention": true,
        "preferOutputPath": null
      }

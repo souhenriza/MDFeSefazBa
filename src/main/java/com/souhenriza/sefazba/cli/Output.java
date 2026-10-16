@@ -25,10 +25,10 @@ public final class Output {
     }
 
     public static void printCompanies(List<CompanyResponse> companies) {
-        System.out.printf("%-5s %-14s %-50s %-8s %-8s %s%n", "ID", "CNPJ", "Razão social", "Domínio", "Resp.", "Int. comercial");
+        System.out.printf("%-5s %-14s %-50s %-8s %s%n", "ID", "CNPJ", "Razão social", "Domínio", "Int. comercial");
         for (CompanyResponse c : companies) {
-            System.out.printf("%-5d %-14s %-50s %-8d %-8s %s%n", c.id(), c.cnpj(), truncate(c.legalName(), 50),
-                    c.dominioSistemasId(), c.responsibleUserId(), Boolean.TRUE.equals(c.commercialIntention()) ? "sim" : "não");
+            System.out.printf("%-5d %-14s %-50s %-8d %s%n", c.id(), c.cnpj(), truncate(c.legalName(), 50),
+                    c.dominioSistemasId(), Boolean.TRUE.equals(c.commercialIntention()) ? "sim" : "não");
         }
     }
 

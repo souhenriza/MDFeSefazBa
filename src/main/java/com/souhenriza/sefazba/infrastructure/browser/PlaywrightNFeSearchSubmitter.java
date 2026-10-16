@@ -50,7 +50,8 @@ public class PlaywrightNFeSearchSubmitter implements NFeSearchSubmitter {
         page.waitForTimeout(1000);
         log.info("Navigated to destinatario page");
 
-        if (!isFilledStartPeriod(page) || !isFilledEPeriod(page)){
+        // A retry after a wrong captcha may come back with the period still filled
+        if (!isPeriodFilled(page, dateRange)) {
             fillPeriod(page, dateRange);
         }
 
@@ -90,12 +91,10 @@ public class PlaywrightNFeSearchSubmitter implements NFeSearchSubmitter {
         log.info("Submit success: {}", this.success);
     }
 
-    public boolean isFilledStartPeriod(Page page) {
-        return page.locator("txtPeriodoInicial").inputValue() != null;
-    }
-
-    public boolean isFilledEPeriod(Page page) {
-        return page.locator("txtPeriodoInicial").inputValue() != null;
+    private boolean isPeriodFilled(Page page, DateRange dateRange) {
+        return page.locator("#rbt_filtro3").isChecked()
+                && dateRange.start().format(DATE_FORMAT).equals(page.locator("#txtPeriodoInicial").inputValue())
+                && dateRange.end().format(DATE_FORMAT).equals(page.locator("#txtPeriodoFinal").inputValue());
     }
 
     private void fillPeriod(Page page, DateRange dateRange) {

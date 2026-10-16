@@ -42,7 +42,6 @@ public class CompanyService {
                     request.dominioSistemasId(),
                     cipheredLogin,
                     cipheredPassword,
-                    request.responsibleUserId(),
                     request.commercialIntention(),
                     request.preferOutputPath()
             );
@@ -92,9 +91,6 @@ public class CompanyService {
         }
         if (request.sefazPassword() != null && !request.sefazPassword().isBlank()) {
             entity.setSefazPassword(cryptoService.encrypt(request.sefazPassword()));
-        }
-        if (request.responsibleUserId() != null) {
-            entity.setResponsibleUserId(request.responsibleUserId());
         }
 
         if (request.commercialIntention() != null) {

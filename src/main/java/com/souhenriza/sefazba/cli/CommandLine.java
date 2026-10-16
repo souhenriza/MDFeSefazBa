@@ -37,7 +37,7 @@ public class CommandLine {
               company show <id> | company show --cnpj <cnpj>
               company import <arquivo.json>         lista de empresas no formato de main_company.json
               company update <id> [--legal-name X] [--trade-name X] [--cnpj X] [--dominio-id N]
-                                  [--login X] [--password] [--responsible-user N]
+                                  [--login X] [--password]
                                   [--commercial-intention true|false]
                                   --password pede a nova senha no terminal
               company delete <id>
@@ -107,7 +107,6 @@ public class CommandLine {
                         args.intOption("--dominio-id"),
                         args.option("--login"),
                         args.flag("--password") ? readPassword() : null,
-                        args.longOption("--responsible-user"),
                         commercialIntention == null ? null : Boolean.parseBoolean(commercialIntention));
                 printCompanies(List.of(context.companyService.update(id, request)));
             }
@@ -307,15 +306,6 @@ public class CommandLine {
         int intOption(String name, int defaultValue) {
             Integer value = intOption(name);
             return value == null ? defaultValue : value;
-        }
-
-        Long longOption(String name) {
-            String value = options.get(name);
-            try {
-                return value == null ? null : Long.valueOf(value);
-            } catch (NumberFormatException e) {
-                throw new UsageException("Número inválido em " + name + ": " + value);
-            }
         }
 
         LocalDate dateOption(String name) {

@@ -36,9 +36,6 @@ public class CompanyEntity {
     @Column(name = "sefaz_password", nullable = false)
     private java.lang.String sefazPassword;
 
-    @Column(name = "responsible_user_id", nullable = false)
-    private Long responsibleUserId;
-
     @Column(name = "commercial_intention")
     private boolean commercialIntention;
 
@@ -53,7 +50,6 @@ public class CompanyEntity {
                 cnpj,
                 dominioSistemasId,
                 new SefazCredentials(sefazLogin, sefazPassword),
-                responsibleUserId,
                 commercialIntention,
                 preferOutputPath
         );
@@ -62,7 +58,7 @@ public class CompanyEntity {
     public static CompanyEntity fromRequest(
             java.lang.String legalName, java.lang.String tradeName, java.lang.String cnpj,
             int dominioSistemasId, java.lang.String sefazLogin, java.lang.String sefazPassword,
-            Long responsibleUserId, boolean commercialIntention, String preferOutputPath
+            boolean commercialIntention, String preferOutputPath
     ) {
         CompanyEntity entity = new CompanyEntity();
         entity.setLegalName(legalName);
@@ -71,7 +67,6 @@ public class CompanyEntity {
         entity.setDominioSistemasId(dominioSistemasId);
         entity.setSefazLogin(sefazLogin);
         entity.setSefazPassword(sefazPassword);
-        entity.setResponsibleUserId(responsibleUserId);
         entity.setCommercialIntention(commercialIntention);
         entity.setPreferOutputPath(preferOutputPath);
         return entity;

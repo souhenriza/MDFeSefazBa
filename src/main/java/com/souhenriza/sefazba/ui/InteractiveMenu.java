@@ -26,10 +26,7 @@ import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Supplier;
 
 import static com.souhenriza.sefazba.cli.Output.*;
@@ -90,12 +87,8 @@ public class InteractiveMenu {
 
         private static @NonNull Map<String, String> createOptions() {
             Map<String, String> options = new LinkedHashMap<>();
-            options.put("extract", "Extrair NF-e de uma empresa");
-            options.put("extract-all", "Extrair todas as empresas");
-            options.put("extract-commercial", "Extrair empresas com intenção comercial");
-            options.put("resume", "Retomar lote interrompido");
-            options.put("batches", "Ver lotes de extração");
-            options.put("extracts", "Extrações recentes");
+            options.put("extractions", "Extrações ▸");
+            options.put("batches", "Lotes ▸");
             options.put("companies", "Empresas ▸");
             options.put("login", "Testar login na SEFAZ");
             options.put("folder", "Abrir pasta de dados e relatórios");
@@ -106,20 +99,69 @@ public class InteractiveMenu {
 
         private void runAction(String choice) {
             this.runSafely(switch (choice) {
-                case "extract" -> this::extractOne;
-                case "extract-all" -> this::extractAll;
-                case "extract-commercial" -> this::extractCommercial;
-                case "resume" -> this::resumeBatch;
-                case "batches" -> this::showBatches;
+                case "extractions" -> this::extractions;
+                case "batches" -> this::batches;
                 case "extracts" -> () -> {
                     printExtracts(context.extractResultService.findRecent(20));
-                    return true;
+                    return;
                 };
                 case "companies" -> this::companies;
                 case "login" -> this::testLogin;
                 case "folder" -> this::openDataFolder;
                 default -> () -> false;
             });
+        }
+
+        private boolean extractions() {
+            Map<String, String> options = new LinkedHashMap<>();
+            options.put("all", "Extrair todas as empresas");
+            options.put("resale", "Extrair empresas revendedoras");
+            options.put("show", "Mostrar extrações");
+
+            String choose = prompts.select("Extrações", options);
+
+            if (choose == null) {
+                return false;
+            }
+
+            return switch (choose) {
+
+                case "show" -> {
+                    printExtracts(context.extractResultService.findRecent(20));
+                    yield  true;
+                }
+
+                case "resale" -> this.extractCommercial();
+
+                case "all" -> this.extractAll();
+
+                default -> false;
+            };
+
+        }
+
+        private boolean batches() {
+            Map<String, String> options = new LinkedHashMap<>();
+            options.put("show", "Ver lotes de extração");
+            options.put("recents", "Extrações recentes");
+            options.put("resume", "Continuar erros e pendentes");
+
+            String choose = prompts.select("Lotes", options);
+
+            if (choose == null) {
+                return false;
+            }
+
+            return switch (choose) {
+                case "recents" -> {
+                    printBatches(context.batchService.findRecent(20));
+                    yield true;
+                }
+                case "show" -> this.showBatches();
+
+                case "resume" -> this.resumeBatch();
+                default -> false;
+            };
         }
 
         /**
@@ -140,7 +182,7 @@ public class InteractiveMenu {
 
         private void printHeader() {
             String currentUser = System.getProperty("user.name");
-            System.out.println("Olá " + currentUser);
+            System.out.println("Olá " + normalize(currentUser));
             System.out.println(SefazBaApplication.version());
             System.out.println("Dados em: " + context.config().baseDir());
             System.out.println(statusLine());
@@ -347,14 +389,12 @@ public class InteractiveMenu {
             if (login == null) return false;
             String password = prompts.password("Senha SEFAZ");
             if (password == null || password.isBlank()) return false;
-            Integer responsible = askInt("ID do usuário responsável", 1);
-            if (responsible == null) return false;
             boolean commercialIntention = prompts.confirm("Tem intenção comercial?", false);
             String outputPath = prompts.input("Pasta preferida para os relatórios (opcional)", null);
             if (outputPath == null) return false;
 
             List<CompanyResponse> created = context.companyService.create(List.of(new CreateCompanyRequest(
-                    legalName, tradeName, cnpj, dominioId, login, password, responsible.longValue(),
+                    legalName, tradeName, cnpj, dominioId, login, password,
                     commercialIntention, outputPath.isBlank() ? null : outputPath)));
             System.out.println("Empresa cadastrada.");
             printCompanies(created);
@@ -398,7 +438,7 @@ public class InteractiveMenu {
                     Boolean.TRUE.equals(company.commercialIntention()));
 
             CompanyResponse updated = context.companyService.update(company.id(), new UpdateCompanyRequest(
-                    legalName, tradeName, cnpj, dominioId, login, password, null, commercialIntention));
+                    legalName, tradeName, cnpj, dominioId, login, password, commercialIntention));
             System.out.println("Empresa atualizada.");
             printCompanies(List.of(updated));
             return true;
@@ -604,9 +644,15 @@ public class InteractiveMenu {
     private record ReportChoice(boolean generate, ReportFormat format, String outputPath) {
     }
 
-    public void clear(Terminal terminal) {
+    public String normalizeText(String value) {
+        String[] values = value.split("\\s+");
+        StringBuilder builder = new StringBuilder();
 
-        terminal.puts(InfoCmp.Capability.clear_screen);
-        terminal.flush();
+        for (String s : values) {
+            builder.append(String.valueOf(s.charAt(0)).toUpperCase(Locale.ROOT));
+            builder.append(s.substring(1));
+        }
+
+        return builder.toString();
     }
 }

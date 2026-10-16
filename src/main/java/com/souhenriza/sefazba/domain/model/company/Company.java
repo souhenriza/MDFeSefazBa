@@ -9,7 +9,6 @@ public record Company(
         String cnpj,
         int dominioSistemasId,
         SefazCredentials credentials,
-        Long responsibleUserId,
         boolean haveCommercialIntention,
         String preferOutputPath
 ) {
@@ -22,9 +21,6 @@ public record Company(
         }
         if (credentials == null) {
             throw new InvalidCompanyException("Credentials must not be null");
-        }
-        if (responsibleUserId == null) {
-            throw new InvalidCompanyException("Responsible user ID must not be null");
         }
     }
 }
