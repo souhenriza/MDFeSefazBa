@@ -54,8 +54,6 @@ public class NFeExtractionService {
     private final String fallbackReportsDir;
     private static final String CONSOLIDATED_PDF_FILENAME = "Relatório Consolidado - MDFe.pdf";
 
-    private final List<String> companiesAcronymWithMDFeCommunicationWithCostumer = List.of("FUTURA", "BEST");
-
     public NFeExtractionService(SefazSessionService sessionService,
                                 CompanyService companyService,
                                 NFeGridExtractor nfeGridExtractor,
@@ -121,9 +119,6 @@ public class NFeExtractionService {
         return startBatch(request, companyService::getAllEntitiesWithCommercialIntention);
     }
 
-    /**
-     * Runs the batch to the end on the calling thread; the returned batch is already finished.
-     */
     public StartedBatch resumeBatch(Integer batchId) {
         ExtractionBatchEntity batch = batchService.getBatch(batchId);
         if (!batch.getStatus().isResumable()) {
@@ -151,7 +146,6 @@ public class NFeExtractionService {
         return new StartedBatch(batch.getId(), batch.getDescription(), requestedAt, batchCompanies.size());
     }
 
-    /* Callers hold the ExtractionLock, so this is the only batch running on this machine. */
     private void run(ExtractionBatchEntity batch, List<ExtractionBatchItemEntity> items) {
         try {
             runItems(batch, items);
@@ -256,8 +250,7 @@ public class NFeExtractionService {
     }
 
     private boolean hasMDFeCommunicationWithCostumer(CompanyEntity companyEntity) {
-        return companiesAcronymWithMDFeCommunicationWithCostumer.contains(companyEntity.getLegalName().toUpperCase(Locale.ROOT)) ||
-                companiesAcronymWithMDFeCommunicationWithCostumer.contains(companyEntity.getTradeName().toUpperCase(Locale.ROOT));
+        return true;
     }
 
     private ExtractionResult extract(Integer companyId, SearchPeriod.DateRange dateRange, String periodLabel) {
