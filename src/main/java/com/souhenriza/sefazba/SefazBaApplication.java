@@ -16,7 +16,6 @@ import java.util.Set;
 @Slf4j
 public class SefazBaApplication {
 
-    /* The errors the REST exception handlers answered with a 4xx/502: expected outcomes, no stack trace needed. */
     private static final Set<Class<? extends RuntimeException>> EXPECTED_ERRORS = Set.of(
             CompanyNotFoundException.class, CompanyAlreadyExists.class, InvalidCompanyException.class,
             SefazAuthenticationException.class, InvalidUserException.class, ExtractionInProgressException.class,

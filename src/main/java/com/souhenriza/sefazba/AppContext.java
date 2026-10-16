@@ -40,14 +40,15 @@ public final class AppContext implements AutoCloseable {
         this.config = config;
         this.jpa = new Jpa(config.databaseUrl());
 
-        CompanyRepository repositorioDeEmpresas = new CompanyRepository(jpa);
-        ExtractRepository repositorioDeExtracoes = new ExtractRepository(jpa);
-        ExtractionBatchRepository repositorioDeLotes = new ExtractionBatchRepository(jpa);
-        ExtractionBatchItemRepository repositorioDeItemsDeLote = new ExtractionBatchItemRepository(jpa);
+        CompanyRepository companyRepository = new CompanyRepository(jpa);
+        ExtractRepository extractRepository = new ExtractRepository(jpa);
+        ExtractionBatchRepository extractionBatchRepository = new ExtractionBatchRepository(jpa);
+        ExtractionBatchItemRepository extractionBatchItemRepository = new ExtractionBatchItemRepository(jpa);
 
         CryptoService cryptoService = new CryptoService(config.keyPath());
         BrowserLockManager lockManager = new BrowserLockManager();
         this.browserProvider = new PlaywrightBrowserProvider(lockManager, config.browserHeadless());
+
         NetworkChangesResolver networkChangesResolver = new NetworkChangesResolver();
 
         PlaywrightSefazAuthenticator authenticator =
@@ -58,23 +59,20 @@ public final class AppContext implements AutoCloseable {
         PlaywrightNFeGridExtractor gridExtractor =
                 new PlaywrightNFeGridExtractor(browserProvider, searchSubmitter, searchSubmitter, detailsExtractor);
 
-        this.companyService = new CompanyService(repositorioDeEmpresas, cryptoService, jpa);
+        this.companyService = new CompanyService(companyRepository, cryptoService, jpa);
         this.sessionService = new SefazSessionService(companyService, authenticator, browserProvider, lockManager,
                 cryptoService);
-        this.batchService = new ExtractionBatchService(repositorioDeLotes, repositorioDeItemsDeLote, jpa);
-        this.extractResultService = new ExtractResultService(repositorioDeExtracoes);
+        this.batchService = new ExtractionBatchService(extractionBatchRepository, extractionBatchItemRepository, jpa);
+        this.extractResultService = new ExtractResultService(extractRepository);
         this.extractionService = new NFeExtractionService(sessionService, companyService, gridExtractor, lockManager,
                 List.of(
                         new NFeDetailsPDFReport(config.accountDeskName(), config.accountDeskSlogan(),
                                 new ICMSPartialAnticipationImpl()),
                         new NFeDetailsXLSXReport()),
-                repositorioDeExtracoes, batchService, config.fallbackReportsDir());
+                extractRepository, batchService, config.fallbackReportsDir(),
+                config.genPDFReport());
     }
 
-    /**
-     * Taken before anything that drives the browser. Holding it also proves no other process is mid-batch, which
-     * is what makes it safe to turn leftover RUNNING batches into resumable ones here.
-     */
     public ExtractionLock acquireExtractionLock() {
         ExtractionLock lock = ExtractionLock.acquire(Path.of(config.home(), "datas", "extraction.lock"));
         batchService.recoverInterruptedBatches();

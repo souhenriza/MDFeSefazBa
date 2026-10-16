@@ -12,6 +12,7 @@ application:
     datapath: Tesseract-OCR/tessdata
   reports:
     fallback-dir: reports
+    genReport: true
   sefaz:
     links:
       root-site: https://nfe.sefaz.ba.gov.br/servicos/NFENC/SSL/ASLibrary/Login?ReturnUrl=%2fservicos%2fnfenc%2fModulos%2fAutenticado%2fRestrito%2fNFENC_consulta_destinatario.aspx

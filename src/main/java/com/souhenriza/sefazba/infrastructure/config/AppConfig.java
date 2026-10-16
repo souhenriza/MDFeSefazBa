@@ -9,21 +9,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
-/**
- * Settings read from configs.yaml.
- * <p>
- * The base directory is $SEFAZBA_HOME or, when it is not set, a per-user data folder (%APPDATA%\SefazBa on
- * Windows, $XDG_DATA_HOME/sefazba on Linux): the install folder is read-only once packaged. On Windows it is not
- * %LOCALAPPDATA%\SefazBa because that is where the per-user installer puts the program itself. The first run copies the
- * bundled configs.yaml there so it can be edited, and every relative path in the settings resolves against it.
- */
 public class AppConfig {
 
     private static final String FILE_NAME = "configs.yaml";
     private static final String HOME_VARIABLE = "SEFAZBA_HOME";
     private static final String SQLITE_PREFIX = "jdbc:sqlite:";
 
-    /* Set by the installer's launcher to the tessdata folder shipped with the app */
     private static final String BUNDLED_TESSDATA_PROPERTY = "sefazba.tessdata";
 
     private final Path baseDir;
@@ -102,6 +93,7 @@ public class AppConfig {
     public boolean browserHeadless() {
         return Boolean.parseBoolean(string("application.browser.headless", "false"));
     }
+    public boolean genPDFReport() {return  Boolean.parseBoolean(string("application.reports.genReport", "true"));}
 
     /**
      * The configured folder when it exists, otherwise the tessdata shipped with the installer.

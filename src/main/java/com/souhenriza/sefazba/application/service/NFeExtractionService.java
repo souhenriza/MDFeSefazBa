@@ -53,6 +53,7 @@ public class NFeExtractionService {
     private final ExtractionBatchService batchService;
     private final String fallbackReportsDir;
     private static final String CONSOLIDATED_PDF_FILENAME = "Relatório Consolidado - MDFe.pdf";
+    private final boolean genPDFReport;
 
     public NFeExtractionService(SefazSessionService sessionService,
                                 CompanyService companyService,
@@ -60,7 +61,7 @@ public class NFeExtractionService {
                                 BrowserLockManager lockManager,
                                 List<NFeDetailsReport> reportImplementations, ExtractRepository extractRepository,
                                 ExtractionBatchService batchService,
-                                String fallbackReportsDir) {
+                                String fallbackReportsDir, boolean genPDFReport) {
         this.sessionService = sessionService;
         this.companyService = companyService;
         this.nfeGridExtractor = nfeGridExtractor;
@@ -70,6 +71,7 @@ public class NFeExtractionService {
         this.extractRepository = extractRepository;
         this.batchService = batchService;
         this.fallbackReportsDir = fallbackReportsDir;
+        this.genPDFReport = genPDFReport;
     }
 
 
@@ -249,8 +251,9 @@ public class NFeExtractionService {
                 .map(path -> Path.of(path).resolve(competencyFolder(startDate)).toAbsolutePath());
     }
 
+    //
     private boolean hasMDFeCommunicationWithCostumer(CompanyEntity companyEntity) {
-        return true;
+        return genPDFReport;
     }
 
     private ExtractionResult extract(Integer companyId, SearchPeriod.DateRange dateRange, String periodLabel) {
