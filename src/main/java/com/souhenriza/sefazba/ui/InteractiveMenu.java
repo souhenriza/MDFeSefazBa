@@ -103,7 +103,7 @@ public class InteractiveMenu {
                 case "batches" -> this::batches;
                 case "extracts" -> () -> {
                     printExtracts(context.extractResultService.findRecent(20));
-                    return;
+                    return true;
                 };
                 case "companies" -> this::companies;
                 case "login" -> this::testLogin;

@@ -31,7 +31,8 @@ public class Prompts implements AutoCloseable {
 
     public Prompts() {
         try {
-            this.terminal = TerminalBuilder.builder().system(true).build();
+            this.terminal = TerminalBuilder.builder().system(true)
+                    .name("MDFe Sefaz Bahia - Terminal").build();
         } catch (IOException e) {
             throw new UncheckedIOException("Could not open the terminal", e);
         }
