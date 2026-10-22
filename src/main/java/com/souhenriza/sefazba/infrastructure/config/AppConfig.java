@@ -93,7 +93,7 @@ public class AppConfig {
     public boolean browserHeadless() {
         return Boolean.parseBoolean(string("application.browser.headless", "false"));
     }
-    public boolean genPDFReport() {return  Boolean.parseBoolean(string("application.reports.genReport", "true"));}
+    public boolean genPDFReport() {return  Boolean.parseBoolean(string("application.reports.gen-report", "true"));}
 
     /**
      * The configured folder when it exists, otherwise the tessdata shipped with the installer.
@@ -104,8 +104,12 @@ public class AppConfig {
         return !Files.isDirectory(Path.of(configured)) && bundled != null ? bundled : configured;
     }
 
-    public String rootSite() {
-        return string("application.sefaz.links.root-site", null);
+    public String recipientLogin() {
+        return string("application.sefaz.links.login-recipient", null);
+    }
+
+    public String issuerLogin() {
+        return string("application.sefaz.links.login-issuer", null);
     }
 
     public String accessKeySite() {

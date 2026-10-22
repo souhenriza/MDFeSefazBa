@@ -33,6 +33,8 @@ public final class AppContext implements AutoCloseable {
     public final ExtractionBatchService batchService;
     public final ExtractResultService extractResultService;
     public final NFeExtractionService extractionService;
+    public final PlaywrightReportExtractor reportExtractor;
+
 
     private boolean closed;
 
@@ -52,16 +54,19 @@ public final class AppContext implements AutoCloseable {
         NetworkChangesResolver networkChangesResolver = new NetworkChangesResolver();
 
         PlaywrightSefazAuthenticator authenticator =
-                new PlaywrightSefazAuthenticator(browserProvider, config.rootSite(), networkChangesResolver);
+                new PlaywrightSefazAuthenticator(browserProvider, networkChangesResolver);
         PlaywrightNFeSearchSubmitter searchSubmitter = new PlaywrightNFeSearchSubmitter(browserProvider,
                 new CaptchaDestinatarioSolver(config.tesseractDatapath()), config.home());
         NFeDetailsExtractor detailsExtractor = new NFeDetailsExtractor(browserProvider, networkChangesResolver);
         PlaywrightNFeGridExtractor gridExtractor =
                 new PlaywrightNFeGridExtractor(browserProvider, searchSubmitter, searchSubmitter, detailsExtractor);
+        this.reportExtractor = new PlaywrightReportExtractor(searchSubmitter, browserProvider);
 
         this.companyService = new CompanyService(companyRepository, cryptoService, jpa);
+
         this.sessionService = new SefazSessionService(companyService, authenticator, browserProvider, lockManager,
-                cryptoService);
+                cryptoService, config);
+
         this.batchService = new ExtractionBatchService(extractionBatchRepository, extractionBatchItemRepository, jpa);
         this.extractResultService = new ExtractResultService(extractRepository);
         this.extractionService = new NFeExtractionService(sessionService, companyService, gridExtractor, lockManager,

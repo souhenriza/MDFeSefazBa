@@ -59,7 +59,6 @@ public class PlaywrightBrowserProvider {
         }
 
         PlaywrightAssertions.setDefaultAssertionTimeout(10000);
-
         return page;
     }
 
@@ -87,7 +86,7 @@ public class PlaywrightBrowserProvider {
 
         Browser launched = switch (preferBrowser) {
             case FIREFOX -> playwright.firefox().launch(options);
-            case CHROME, MSEDGE -> playwright.chromium().launch(options.setChannel(preferBrowser.getBrowserValue()));
+            case CHROME, MSEDGE -> playwright.chromium().launch();
 
 
         };

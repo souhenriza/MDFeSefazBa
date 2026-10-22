@@ -41,14 +41,15 @@ public class NetworkChangesResolver {
         throw new SefazInvalidState("Maybe SEFAZ site is unreachable. Try again.");
     }
 
-    public void resolve(Page page, String url, int maxRetries, long timeout) {
+    public void resolve(Page page, int maxRetries, long timeout) {
 
         Page.NavigateOptions navigateOptions = new Page.NavigateOptions();
         navigateOptions.setTimeout(60000);
 
            for (int i = 1; i <= maxRetries ; i++) {
             try {
-                Response response = page.navigate(url, navigateOptions);
+                String loginUrl = page.url();
+                Response response = page.navigate(loginUrl, navigateOptions);
 
                 int status = response != null ? response.status() : -1;
 
@@ -80,13 +81,12 @@ public class NetworkChangesResolver {
 
     private static boolean isIsNetworkError(Exception e) {
         String message = e.getMessage() != null ? e.getMessage() : "";
-        boolean isNetworkError = message.contains("ERR_NETWORK_CHANGED")
+        return message.contains("ERR_NETWORK_CHANGED")
                 || message.contains("ERR_CONNECTION_RESET")
                 || message.contains("ERR_CONNECTION_REFUSED")
                 || message.contains("ERR_CONNECTION_TIMED_OUT")
                 || message.contains("ERR_NAME_NOT_RESOLVED")
                 || message.contains("ERR_SSL")
                 || message.contains("ERR_ABORTED");
-        return isNetworkError;
     }
 }

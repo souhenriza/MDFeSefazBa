@@ -6,6 +6,7 @@ import com.souhenriza.sefazba.application.dto.CompanyResponse;
 import com.souhenriza.sefazba.application.dto.CreateCompanyRequest;
 import com.souhenriza.sefazba.application.dto.ExtractionBatchSummaryResponse;
 import com.souhenriza.sefazba.application.dto.UpdateCompanyRequest;
+import com.souhenriza.sefazba.application.service.Action;
 import com.souhenriza.sefazba.cli.CommandLine;
 import com.souhenriza.sefazba.domain.model.ExtractionResult;
 import com.souhenriza.sefazba.domain.model.StartedBatch;
@@ -14,11 +15,9 @@ import com.souhenriza.sefazba.infrastructure.lock.ExtractionLock;
 import com.souhenriza.sefazba.shared.enums.ReportFormat;
 import com.souhenriza.sefazba.shared.enums.SearchPeriod;
 import org.jline.reader.UserInterruptException;
-import org.jline.terminal.Terminal;
-import org.jline.utils.InfoCmp;
 import org.jspecify.annotations.NonNull;
 
-import java.awt.Desktop;
+import java.awt.*;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,7 +25,10 @@ import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import static com.souhenriza.sefazba.cli.Output.*;
@@ -67,7 +69,7 @@ public class InteractiveMenu {
         void loop() {
             firstRunSetup();
             while (true) {
-                // Each return to the menu starts on a clean screen with freshly loaded numbers
+
                 prompts.clearScreen();
                 printHeader();
 
@@ -87,7 +89,8 @@ public class InteractiveMenu {
 
         private static @NonNull Map<String, String> createOptions() {
             Map<String, String> options = new LinkedHashMap<>();
-            options.put("extractions", "Extrações ▸");
+            options.put("extractions", "MDFe ▸");
+            options.put("reports", "Relatórios ▸");
             options.put("batches", "Lotes ▸");
             options.put("companies", "Empresas ▸");
             options.put("login", "Testar login na SEFAZ");
@@ -105,6 +108,7 @@ public class InteractiveMenu {
                     printExtracts(context.extractResultService.findRecent(20));
                     return true;
                 };
+                case "reports" -> this::reports;
                 case "companies" -> this::companies;
                 case "login" -> this::testLogin;
                 case "folder" -> this::openDataFolder;
@@ -112,8 +116,83 @@ public class InteractiveMenu {
             });
         }
 
+        private boolean reports() {
+            Map<String, String> options = new LinkedHashMap<>();
+            options.put("issuer", "Relatório emitente ▸");
+            options.put("recipient", "Relatório destinatário ▸");
+
+            String choose = prompts.select("Relatórios", options);
+
+            if (choose == null) {
+                return false;
+            }
+
+            return switch (choose) {
+                case "issuer" -> this.issuerReport();
+                case  "recipient" -> this.recipientReport();
+
+
+                default -> false;
+            };
+        }
+
+        private boolean recipientReport() {
+            CompanyResponse company = chooseCompany();
+            if (company == null) {
+                return false;
+            }
+
+            PeriodChoice period = choosePeriod(true);
+            if (period == null) {
+                return false;
+            }
+
+            String outputPath = prompts.input("Pasta onde salvar", context.config().fallbackReportsDir());
+            if (outputPath == null || outputPath.isBlank()) {
+                return false;
+            }
+
+            warnAboutBrowserDownload();
+            withLock(() -> {
+                context.sessionService.login(company.id(), Action.RECIPIENT);
+                context.reportExtractor.extractRecipientReport(
+                        SearchPeriod.DateRange.of(period.start(), period.end()), outputPath);
+                return null;
+            });
+            System.out.println("Relatório salvo em " + outputPath);
+            return true;
+        }
+
+        private boolean issuerReport() {
+            Map<String, String> options = new LinkedHashMap<>();
+            options.put("all", "Extrair de todas as empresas");
+            options.put("one", "Extrair de uma empresa");
+
+            String choose = prompts.select("Relatório emitente", options);
+
+            if (choose == null) {
+                return false;
+            }
+
+            return switch (choose) {
+                case "all" -> this.issuerReportAll();
+                case "one" -> this.issuerReportExtractOne();
+
+                default -> false;
+            };
+        }
+
+        private boolean issuerReportExtractOne() {
+            return false;
+        }
+
+        private boolean issuerReportAll() {
+            return false;
+        }
+
         private boolean extractions() {
             Map<String, String> options = new LinkedHashMap<>();
+            options.put("unique", "Extrair uma empresa");
             options.put("all", "Extrair todas as empresas");
             options.put("resale", "Extrair empresas revendedoras");
             options.put("show", "Mostrar extrações");
@@ -134,6 +213,8 @@ public class InteractiveMenu {
                 case "resale" -> this.extractCommercial();
 
                 case "all" -> this.extractAll();
+
+                case "unique" -> this.extractOne();
 
                 default -> false;
             };
@@ -190,9 +271,6 @@ public class InteractiveMenu {
             System.out.println();
         }
 
-        /**
-         * Re-queried on every redraw, so it reflects what the last action changed.
-         */
         private String statusLine() {
             int companies = context.companyService.findAll().size();
             List<ExtractionBatchSummaryResponse> lastBatch = context.batchService.findRecent(1);
@@ -339,7 +417,11 @@ public class InteractiveMenu {
             }
             warnAboutBrowserDownload();
             withLock(() -> {
-                context.sessionService.login(company.id());
+                System.out.println("Logando na página de emitente.");
+                context.sessionService.login(company.id(), Action.ISSUER);
+
+                System.out.println("Logando na página de destinatário.");
+                context.sessionService.login(company.id(), Action.RECIPIENT);
                 return null;
             });
             System.out.println("Login realizado com sucesso.");

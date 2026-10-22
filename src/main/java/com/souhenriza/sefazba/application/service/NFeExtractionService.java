@@ -262,7 +262,7 @@ public class NFeExtractionService {
         }
 
         try {
-            sessionService.login(companyId);
+            sessionService.login(companyId, Action.RECIPIENT);
 
             log.info("Starting NF-e extraction for company {} | Period: {} | {} to {}",
                     companyId, periodLabel, dateRange.start(), dateRange.end());

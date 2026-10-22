@@ -7,6 +7,7 @@ import com.souhenriza.sefazba.domain.port.browser.NetworkChangesResolver;
 import com.souhenriza.sefazba.domain.port.browser.SefazAuthenticator;
 import com.souhenriza.sefazba.shared.enums.RetriesEnum;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -15,42 +16,36 @@ import lombok.extern.slf4j.Slf4j;
 public class PlaywrightSefazAuthenticator implements SefazAuthenticator {
 
     private final PlaywrightBrowserProvider browserProvider;
-    private final String rootSite;
     @Getter @Setter
     private boolean authenticated;
     private final NetworkChangesResolver networkChangesResolver;
     private static final long RETRY_DELAY_MS = 3000;
+    private static final int CONTENT_MAX_ATTEMPTS = 10;
+    private static final long CONTENT_RETRY_DELAY_MS = 1000;
 
     public PlaywrightSefazAuthenticator(
-            PlaywrightBrowserProvider browserProvider,
-            String rootSite, NetworkChangesResolver networkChangesResolver
+            PlaywrightBrowserProvider browserProvider, NetworkChangesResolver networkChangesResolver
     ) {
         this.browserProvider = browserProvider;
-        this.rootSite = rootSite;
         this.networkChangesResolver = networkChangesResolver;
         this.authenticated = false;
     }
 
 
     @Override
-    public void authenticate(String login, String password) {
+    public void authenticate(Page page, String login, String password) {
         this.authenticated = false;
         try {
-            Page page = browserProvider.acquirePage();
-
-             networkChangesResolver.resolve(page, rootSite,
+             networkChangesResolver.resolve(page,
                     RetriesEnum.MAX_RETRY.getMaxRetries(), RETRY_DELAY_MS);
 
             fillLoginForm(page, login, password);
 
             submitLogin(page);
 
-
             validateIfHasErrors(page);
-            page.waitForLoadState();
-             log.info("pressing esc");
-             page.keyboard().press("Escape");
 
+            page.waitForLoadState();
 
             this.authenticated = true;
 
@@ -85,14 +80,32 @@ public class PlaywrightSefazAuthenticator implements SefazAuthenticator {
     }
 
     private void validateIfHasErrors(Page page) {
-        if (page.content().contains("Usuário ou senha Inválidos")) {
+        String content = currentContent(page);
+
+        if (content.contains("Usuário ou senha Inválidos")) {
             browserProvider.releasePage(page);
             throw new InvalidUserException();
         }
 
-        if (page.content().contains("Bloqueado")) {
+        if (content.contains("Bloqueado")) {
             browserProvider.releasePage(page);
             throw new InvalidUserException("O usuário se encontra bloqueado");
+        }
+    }
+
+    /* The portal may still be redirecting after the submit; content() refuses to run until the page settles. */
+    private String currentContent(Page page) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                page.waitForLoadState();
+                return page.content();
+            } catch (PlaywrightException e) {
+                boolean stillNavigating = e.getMessage() != null && e.getMessage().contains("navigating");
+                if (!stillNavigating || attempt >= CONTENT_MAX_ATTEMPTS) {
+                    throw e;
+                }
+                page.waitForTimeout(CONTENT_RETRY_DELAY_MS);
+            }
         }
     }
 

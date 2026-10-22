@@ -5,5 +5,4 @@ import java.time.LocalDate;
 public interface ICMSPartialAnticipation {
     LocalDate getDueDate(LocalDate mdfeIssueDate, boolean haveMDFe);
 
-    String getValueToPay(String totalValue);
 }

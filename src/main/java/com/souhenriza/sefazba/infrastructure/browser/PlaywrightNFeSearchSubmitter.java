@@ -50,7 +50,6 @@ public class PlaywrightNFeSearchSubmitter implements NFeSearchSubmitter {
         page.waitForTimeout(1000);
         log.info("Navigated to destinatario page");
 
-        // A retry after a wrong captcha may come back with the period still filled
         if (!isPeriodFilled(page, dateRange)) {
             fillPeriod(page, dateRange);
         }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.souhenriza.sefazba.AppContext;
 import com.souhenriza.sefazba.application.dto.*;
+import com.souhenriza.sefazba.application.service.Action;
 import com.souhenriza.sefazba.domain.model.ExtractionResult;
 import com.souhenriza.sefazba.domain.model.StartedBatch;
 import com.souhenriza.sefazba.infrastructure.lock.ExtractionLock;
@@ -136,12 +137,11 @@ public class CommandLine {
         return new Scanner(System.in).nextLine();
     }
 
-    // ==================== extraction ====================
 
     private void login() {
         Integer companyId = args.intPositional(0, "id da empresa");
         try (ExtractionLock ignored = context.acquireExtractionLock()) {
-            context.sessionService.login(companyId);
+            context.sessionService.login(companyId, Action.ISSUER);
         }
         System.out.println("Login realizado com sucesso.");
     }

@@ -8,17 +8,13 @@ public class ICMSPartialAnticipationImpl implements ICMSPartialAnticipation {
 
 
     @Override
-    public LocalDate getDueDate(LocalDate mdfeIssueDate, boolean haveMDFe) {
+    public LocalDate getDueDate(LocalDate nfeIssueDate, boolean haveMDFe) {
         if (!haveMDFe) {
-            return mdfeIssueDate;
+            return nfeIssueDate;
         }
 
 
-        return LocalDate.of(mdfeIssueDate.getYear(), mdfeIssueDate.plusMonths(1).getMonth(), 25);
+        return LocalDate.of(nfeIssueDate.getYear(), nfeIssueDate.plusMonths(1).getMonth(), 25);
     }
 
-    @Override
-    public String getValueToPay(String totalValue) {
-        return "";
-    }
 }
